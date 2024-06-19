@@ -2,6 +2,9 @@ package auth
 
 import (
 	"context"
+	"errors"
+	"github.com/maestro-milagro/gRPC_Sample/internal/services/auth"
+	"github.com/maestro-milagro/gRPC_Sample/internal/storage"
 	ssov1 "github.com/maestro-milagro/protos/gen/go/sso"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -45,8 +48,10 @@ func (s *serverAPI) Login(
 	}
 	token, err := s.auth.Login(ctx, req.GetEmail(), req.GetPassword(), int(req.GetAppId()))
 	if err != nil {
-		// TODO: ........
-		return nil, status.Error(codes.Internal, "internal error")
+		if errors.Is(err, auth.ErrInvalidCredentials) {
+			return nil, status.Error(codes.InvalidArgument, "invalid argument")
+		}
+		return nil, status.Error(codes.InvalidArgument, "invalid argument")
 	}
 	return &ssov1.LoginResponse{
 		Token: token,
@@ -63,7 +68,10 @@ func (s *serverAPI) Register(
 
 	userId, err := s.auth.RegisterNewUser(ctx, req.GetEmail(), req.Password)
 	if err != nil {
-		// TODO: ........
+		if errors.Is(err, auth.ErrInvalidUserExistence) {
+			return nil, status.Error(codes.AlreadyExists, "user already exist")
+		}
+
 		return nil, status.Error(codes.Internal, "internal error")
 	}
 	return &ssov1.RegisterResponse{
@@ -80,7 +88,10 @@ func (s *serverAPI) IsAdmin(
 	}
 	flag, err := s.auth.IsAdmin(ctx, req.UserId)
 	if err != nil {
-		// TODO: ........
+		if errors.Is(err, storage.ErrUserNotFound) {
+			return nil, status.Error(codes.NotFound, "user not found")
+		}
+
 		return nil, status.Error(codes.Internal, "internal error")
 	}
 	return &ssov1.IsAdminResponse{
