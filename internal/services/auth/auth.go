@@ -42,6 +42,7 @@ var (
 	ErrInvalidCredentials   = errors.New("invalid credentials")
 	ErrInvalidAppId         = errors.New("invalid app id")
 	ErrInvalidUserExistence = errors.New("user exist")
+	ErrUserNotFound         = errors.New("user not found")
 )
 
 func New(
@@ -71,7 +72,7 @@ func (a *Auth) Login(
 
 	log := a.log.With(
 		slog.String("op", op),
-		slog.String("email", op),
+		slog.String("email", email),
 	)
 
 	log.Info("login user")
@@ -81,7 +82,7 @@ func (a *Auth) Login(
 		if errors.Is(err, storage.ErrUserNotFound) {
 			a.log.Warn("user not found", sl.Err(err))
 
-			return "", fmt.Errorf("%s: %w", op, err)
+			return "", fmt.Errorf("%s: %w", op, ErrInvalidCredentials)
 		}
 
 		a.log.Error("failed to get user", sl.Err(err))
@@ -118,7 +119,7 @@ func (a *Auth) RegisterNewUser(
 
 	log := a.log.With(
 		slog.String("op", op),
-		slog.String("email", op),
+		slog.String("email", email),
 	)
 
 	log.Info("registering user")
@@ -154,7 +155,7 @@ func (a *Auth) IsAdmin(ctx context.Context, userID int64) (bool, error) {
 
 	log := a.log.With(
 		slog.String("op", op),
-		slog.String("email", op),
+		slog.Int64("userID", userID),
 	)
 
 	log.Info("check for is admin")

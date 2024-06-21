@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"github.com/maestro-milagro/gRPC_Sample/internal/services/auth"
-	"github.com/maestro-milagro/gRPC_Sample/internal/storage"
 	ssov1 "github.com/maestro-milagro/protos/gen/go/sso"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -49,9 +48,9 @@ func (s *serverAPI) Login(
 	token, err := s.auth.Login(ctx, req.GetEmail(), req.GetPassword(), int(req.GetAppId()))
 	if err != nil {
 		if errors.Is(err, auth.ErrInvalidCredentials) {
-			return nil, status.Error(codes.InvalidArgument, "invalid argument")
+			return nil, status.Error(codes.InvalidArgument, "invalid email or password")
 		}
-		return nil, status.Error(codes.InvalidArgument, "invalid argument")
+		return nil, status.Error(codes.Internal, "failed to login")
 	}
 	return &ssov1.LoginResponse{
 		Token: token,
@@ -72,7 +71,7 @@ func (s *serverAPI) Register(
 			return nil, status.Error(codes.AlreadyExists, "user already exist")
 		}
 
-		return nil, status.Error(codes.Internal, "internal error")
+		return nil, status.Error(codes.Internal, "failed to register user")
 	}
 	return &ssov1.RegisterResponse{
 		UserId: userId,
@@ -88,11 +87,11 @@ func (s *serverAPI) IsAdmin(
 	}
 	flag, err := s.auth.IsAdmin(ctx, req.UserId)
 	if err != nil {
-		if errors.Is(err, storage.ErrUserNotFound) {
+		if errors.Is(err, auth.ErrUserNotFound) {
 			return nil, status.Error(codes.NotFound, "user not found")
 		}
 
-		return nil, status.Error(codes.Internal, "internal error")
+		return nil, status.Error(codes.Internal, "failed to check admin status")
 	}
 	return &ssov1.IsAdminResponse{
 		IsAdmin: flag,
@@ -107,7 +106,7 @@ func (s *serverAPI) validateLogin(req *ssov1.LoginRequest) error {
 		return status.Error(codes.InvalidArgument, "password is empty")
 	}
 	if req.GetAppId() == emptyValue {
-		return status.Error(codes.InvalidArgument, "app_is required")
+		return status.Error(codes.InvalidArgument, "app_id is empty")
 	}
 	return nil
 }
